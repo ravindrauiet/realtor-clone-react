@@ -4,7 +4,7 @@ import { useLocation ,useNavigate} from "react-router-dom";
 export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
-  function pathMathRoute(route){
+  async function pathMathRoute(route){
     if(route === location.pathname){
       console.log(location.pathname);
       return true
@@ -29,7 +29,7 @@ export default function Header() {
                 onClick={()=>navigate("/offer")}
                 >Offer</li>
 
-                <li className={`cursor-pointer py-3 text-sm font-semibold text-gray-400 border-b-[3px] border-b-transparent ${pathMathRoute("/sign-in") && "text-black border-b-red-500"}`}
+                <li className={`cursor-pointer py-3 text-sm font-semibold text-gray-400 border-b-[3px] border-b-transparent  ${pathMathRoute("/sign-in") &&"text-black border-b-red-500 "}`}
                 onClick={()=>navigate("/sign-in")}
                 >Sign In</li>
             </ul>
