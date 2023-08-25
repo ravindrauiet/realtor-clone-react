@@ -2,12 +2,12 @@ import { useState } from "react";
 import Spinner from "../components/Spinner";
 import { toast } from "react-toastify";
 import {
-    getStorage,
-    ref,
-    uploadBytesResumable,
-    getDownloadURL,
-  } from "firebase/storage";
-import {getAuth} from "firebase/auth";
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
+import { getAuth } from "firebase/auth";
 import { v4 as uuidv4 } from "uuid";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
@@ -17,7 +17,7 @@ export default function CreateListing() {
   const navigate = useNavigate();
   const auth = getAuth();
   const [geolocationEnabled, setGeolocationEnabled] = useState(true);
-  const [loading, setLoading] = useState(false);  
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     type: "rent",
     name: "",
@@ -52,128 +52,127 @@ export default function CreateListing() {
   } = formData;
   function onChange(e) {
     let boolean = null;
-    if(e.target.value === 'true') {
-        boolean = true;
+    if (e.target.value === "true") {
+      boolean = true;
     }
-    if(e.target.value === 'false') {
-        boolean = false;
+    if (e.target.value === "false") {
+      boolean = false;
     }
     // Files
     if (e.target.files) {
-        setFormData((prevState) => ({
-          ...prevState,
-          images: e.target.files,
-        }));
-      }
+      setFormData((prevState) => ({
+        ...prevState,
+        images: e.target.files,
+      }));
+    }
     // Text/Boolean/Number
     if (!e.target.files) {
-        setFormData((prevState) => ({
-          ...prevState,
-          [e.target.id]: boolean ?? e.target.value,
-        }));
+      setFormData((prevState) => ({
+        ...prevState,
+        [e.target.id]: boolean ?? e.target.value,
+      }));
     }
   }
-
-  async function onSubmit(e){
+  async function onSubmit(e) {
     e.preventDefault();
     setLoading(true);
-    if(+discountedPrice >= +regularPrice){
+    if (+discountedPrice >= +regularPrice) {
+      setLoading(false);
+      toast.error("Discounted price needs to be less than regular price");
+      return;
+    }
+    if (images.length > 6) {
+      setLoading(false);
+      toast.error("maximum 6 images are allowed");
+      return;
+    }
+    let geolocation = {};
+    let location;
+    if (geolocationEnabled) {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${process.env.REACT_APP_GEOCODE_API_KEY}`
+      );
+      const data = await response.json();
+      console.log(data);
+      geolocation.lat = data.results[0]?.geometry.location.lat ?? 0;
+      geolocation.lng = data.results[0]?.geometry.location.lng ?? 0;
+
+      location = data.status === "ZERO_RESULTS" && undefined;
+
+      if (location === undefined) {
         setLoading(false);
-        toast.error("Discounted price must be less than regular price");
+        toast.error("please enter a correct address");
         return;
-    }
-    if(images.length >6){
-        setLoading(false);
-        toast.error('Maximum 5 Images');
-        return;
-    }
-
-    let geoLocation ={}
-    let location 
-    if(geolocationEnabled){
-        const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${process.env.REACT_APP_GEOCODE_API_KEY}`);
-        const data = await response.json();
-        console.log(data);
-        geoLocation.lat = data.results[0]?.geometry.location.lat ?? 0;
-        geoLocation.lng = data.results[0]?.geometry.location.lng ?? 0;
-
-        location = data.status === "ZERO_RESULTS" && undefined;
-
-        if(location === undefined ){    //  || location.includes("undefined")
-            setLoading(false);
-            toast.error("please enter a correct location");
-            return;
-        }
-    }else{
-        geoLocation.lat = latitude;
-        geoLocation.lng = longitude;
+      }
+    } else {
+      geolocation.lat = latitude;
+      geolocation.lng = longitude;
     }
 
-    async function storeImage(image){
-        return new Promise((resolve, reject) => {
-            const storage = getStorage();
-            const filename = `${auth.currentUser.uid}-${image.name}-${uuidv4()}`;
-            const storageRef = ref(storage, filename);
-            const uploadTask = uploadBytesResumable(storageRef, image);
-            uploadTask.on(
-                "state_changed",
-                (snapshot) => {
-                  // Observe state change events such as progress, pause, and resume
-                  // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
-                  const progress =
-                    (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                  console.log("Upload is " + progress + "% done");
-                  switch (snapshot.state) {
-                    case "paused":
-                      console.log("Upload is paused");
-                      break;
-                    case "running":
-                      console.log("Upload is running");
-                      break;
-                  }
-                },
-                (error) => {
-                  // Handle unsuccessful uploads
-                  reject(error);
-                },
-                () => {
-                  // Handle successful uploads on complete
-                  // For instance, get the download URL: https://firebasestorage.googleapis.com/...
-                  getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                    resolve(downloadURL);
-                  });
-                }
-              );
+    async function storeImage(image) {
+      return new Promise((resolve, reject) => {
+        const storage = getStorage();
+        const filename = `${auth.currentUser.uid}-${image.name}-${uuidv4()}`;
+        const storageRef = ref(storage, filename);
+        const uploadTask = uploadBytesResumable(storageRef, image);
+        uploadTask.on(
+          "state_changed",
+          (snapshot) => {
+            // Observe state change events such as progress, pause, and resume
+            // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
+            const progress =
+              (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log("Upload is " + progress + "% done");
+            switch (snapshot.state) {
+              case "paused":
+                console.log("Upload is paused");
+                break;
+              case "running":
+                console.log("Upload is running");
+                break;
+            }
+          },
+          (error) => {
+            // Handle unsuccessful uploads
+            reject(error);
+          },
+          () => {
+            // Handle successful uploads on complete
+            // For instance, get the download URL: https://firebasestorage.googleapis.com/...
+            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+              resolve(downloadURL);
             });
+          }
+        );
+      });
     }
 
     const imgUrls = await Promise.all(
-        [...images].map((image)=>storeImage(image))
-        ).catch((error)=>{
-            setLoading(false);
-            toast.error("Images not-Uploaded");
-            return;
-        }
-      );
+      [...images].map((image) => storeImage(image))
+    ).catch((error) => {
+      setLoading(false);
+      toast.error("Images not uploaded");
+      return;
+    });
 
-  const formDataCopy = {
-    ...formData,
-    imgUrls,
-    geoLocation,
-    timestamp: serverTimestamp(),
-  };
-  delete formDataCopy.images;
-  !formDataCopy.offer && delete formDataCopy.discountedPrice;
-  delete formDataCopy.latitude;
-  delete formDataCopy.longitude;
-  const docRef = await addDoc(collection(db, "listings"), formDataCopy);
-  setLoading(false);
-  toast.success("Listing created");
-  navigate(`/category/${formDataCopy.type}/${docRef.id}`);
+    const formDataCopy = {
+      ...formData,
+      imgUrls,
+      geolocation,
+      timestamp: serverTimestamp(),
+      userRef: auth.currentUser.uid,
+    };
+    delete formDataCopy.images;
+    !formDataCopy.offer && delete formDataCopy.discountedPrice;
+    delete formDataCopy.latitude;
+    delete formDataCopy.longitude;
+    const docRef = await addDoc(collection(db, "listings"), formDataCopy);
+    setLoading(false);
+    toast.success("Listing created");
+    navigate(`/category/${formDataCopy.type}/${docRef.id}`);
+  }
 
-}
-
-  if(loading){
+  if (loading) {
     return <Spinner />;
   }
   return (
@@ -390,7 +389,7 @@ export default function CreateListing() {
               />
               {type === "rent" && (
                 <div className="">
-                  <p className="text-md w-full whitespace-nowrap">rupees / Month</p>
+                  <p className="text-md w-full whitespace-nowrap">$ / Month</p>
                 </div>
               )}
             </div>
@@ -414,7 +413,7 @@ export default function CreateListing() {
                 {type === "rent" && (
                   <div className="">
                     <p className="text-md w-full whitespace-nowrap">
-                      rupees / Month
+                      $ / Month
                     </p>
                   </div>
                 )}
@@ -437,7 +436,12 @@ export default function CreateListing() {
             className="w-full px-3 py-1.5 text-gray-700 bg-white border border-gray-300 rounded transition duration-150 ease-in-out focus:bg-white focus:border-slate-600"
           />
         </div>
-        <button type="submit" className="mb-6 w-full px-7 py-3 bg-blue-600 text-white font-medium text-sm uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out">Create Listing</button>
+        <button
+          type="submit"
+          className="mb-6 w-full px-7 py-3 bg-blue-600 text-white font-medium text-sm uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
+        >
+          Create Listing
+        </button>
       </form>
     </main>
   );
