@@ -16,7 +16,7 @@ body{
     background: #a8dadc !important
 }
 
-
+ /* remove scrollbar form chrome browsers and firefox browsers */
 html::-webkit-scrollbar{
     display: none;
 }
