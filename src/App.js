@@ -13,6 +13,7 @@ import Offer from './pages/Offer';
 import Header from './components/Header';
 import Listing from './pages/Listing';
 import CreateListing from './pages/CreateListing';
+import Category from './pages/Category';
 
 import {ToastContainer} from "react-toastify";
 
@@ -35,7 +36,8 @@ function App() {
             path="/category/:categoryName/:listingId"
             element={<Listing />}
           /> 
-        <Route path="/offer" element={<Offer />} /> 
+        <Route path="/offer" element={<Offer />} />
+        <Route path="/category/:categoryName" element={<Category />} /> 
         <Route path="create-listing" element={<PrivateRoute/>}>
           <Route path="/create-listing" element={<CreateListing />} />  
         </Route> 
